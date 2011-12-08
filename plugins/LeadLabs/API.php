@@ -149,28 +149,6 @@ class Piwik_LeadLabs_API
 				 ";
 			$actionDetails = Piwik_FetchAll($sql, array($idvisit));
 			
-			foreach($actionDetails as &$actionDetail)
-			{
-				$customVariablesPage = array();
-				for($i = 1; $i <= Piwik_Tracker::MAX_CUSTOM_VARIABLES; $i++)
-				{
-					if(!empty($actionDetail['custom_var_k'.$i])
-						&& !empty($actionDetail['custom_var_v'.$i]))
-					{
-						$customVariablesPage[$i] = array(
-							'customVariableName'.$i => $actionDetail['custom_var_k'.$i],
-							'customVariableValue'.$i => $actionDetail['custom_var_v'.$i],
-						);
-					}
-					unset($actionDetail['custom_var_k'.$i]);
-					unset($actionDetail['custom_var_v'.$i]);
-				}
-				if(!empty($customVariablesPage))
-				{
-					$actionDetail['customVariables'] = $customVariablesPage;
-				}
-			}
-
 			$actions = $actionDetails;
 			
 			usort($actions, array($this, 'sortByServerTime'));
