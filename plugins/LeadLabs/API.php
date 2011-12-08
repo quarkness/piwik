@@ -128,36 +128,8 @@ class Piwik_LeadLabs_API
 		return $dataTable;
 	}
 
-	/**
-	 * For an array of visits, query the list of pages for this visit 
-	 * as well as make the data human readable
-	 */
-	private function getCleanedVisitorsFromDetails($visitorDetails, $idSite)
+	public function getActionDetailsForIdVisit($idvisit)
 	{
-		$table = new Piwik_DataTable();
-
-		$site = new Piwik_Site($idSite);
-		$timezone = $site->getTimezone();
-		foreach($visitorDetails as $visitorDetail)
-		{
-			$this->cleanVisitorDetails($visitorDetail, $idSite);
-			$visitor = new Piwik_LeadLabs_Visitor($visitorDetail);
-			$visitorDetailsArray = $visitor->getAllVisitorDetails();
-
-			$visitorDetailsArray['serverTimestamp'] = $visitorDetailsArray['lastActionTimestamp'];
-			$dateTimeVisit = Piwik_Date::factory($visitorDetailsArray['lastActionTimestamp'], $timezone);
-			
-			$dateTimeVisitFirstAction = Piwik_Date::factory($visitorDetailsArray['firstActionTimestamp'], $timezone);
-			$visitorDetailsArray['serverDatePrettyFirstAction'] = $dateTimeVisitFirstAction->getLocalized('%shortDay% %day% %shortMonth%');
-			$visitorDetailsArray['serverTimePrettyFirstAction'] = $dateTimeVisitFirstAction->getLocalized('%time%');
-			
-			$idvisit = $visitorDetailsArray['idVisit'];
-
-			$sqlCustomVariables = '';
-			for($i = 1; $i <= Piwik_Tracker::MAX_CUSTOM_VARIABLES; $i++)
-			{
-				$sqlCustomVariables .= ', custom_var_k' . $i . ', custom_var_v' . $i;
-			}
 			// The second join is a LEFT join to allow returning records that don't have a matching page title
 			// eg. Downloads, Outlinks. For these, idaction_name is set to 0
 			$sql = "
@@ -168,7 +140,6 @@ class Piwik_LeadLabs_API
 					log_action.idaction AS pageIdAction,
 					log_link_visit_action.idlink_va AS pageId,
 					log_link_visit_action.server_time as serverTimePretty
-					$sqlCustomVariables
 				FROM " .Piwik_Common::prefixTable('log_link_visit_action')." AS log_link_visit_action
 					INNER JOIN " .Piwik_Common::prefixTable('log_action')." AS log_action
 					ON  log_link_visit_action.idaction_url = log_action.idaction
@@ -203,10 +174,8 @@ class Piwik_LeadLabs_API
 			$actions = $actionDetails;
 			
 			usort($actions, array($this, 'sortByServerTime'));
-			
-			$visitorDetailsArray['actionDetails'] = $actions;   
 			// Convert datetimes to the site timezone
-			foreach($visitorDetailsArray['actionDetails'] as &$details)
+			foreach($actions as &$details)
 			{
 				switch($details['type'])
 				{
@@ -220,9 +189,39 @@ class Piwik_LeadLabs_API
 						$details['type'] = 'action';
 					break;
 				}
-				$dateTimeVisit = Piwik_Date::factory($details['serverTimePretty'], $timezone);
-				$details['serverTimePretty'] = $dateTimeVisit->getLocalized('%shortDay% %day% %shortMonth% %time%'); 
+//				$dateTimeVisit = Piwik_Date::factory($details['serverTimePretty'], $timezone);
+//				$details['serverTimePretty'] = $dateTimeVisit->getLocalized('%shortDay% %day% %shortMonth% %time%'); 
 			}
+			return $actions;
+	}
+	/**
+	 * For an array of visits, query the list of pages for this visit 
+	 * as well as make the data human readable
+	 */
+	private function getCleanedVisitorsFromDetails($visitorDetails, $idSite)
+	{
+		$table = new Piwik_DataTable();
+
+		$site = new Piwik_Site($idSite);
+		$timezone = $site->getTimezone();
+		foreach($visitorDetails as $visitorDetail)
+		{
+			$this->cleanVisitorDetails($visitorDetail, $idSite);
+			$visitor = new Piwik_LeadLabs_Visitor($visitorDetail);
+			$visitorDetailsArray = $visitor->getAllVisitorDetails();
+
+			$visitorDetailsArray['serverTimestamp'] = $visitorDetailsArray['lastActionTimestamp'];
+			$dateTimeVisit = Piwik_Date::factory($visitorDetailsArray['lastActionTimestamp'], $timezone);
+			
+			$dateTimeVisitFirstAction = Piwik_Date::factory($visitorDetailsArray['firstActionTimestamp'], $timezone);
+//			$visitorDetailsArray['serverDatePrettyFirstAction'] = $dateTimeVisitFirstAction->getLocalized('%shortDay% %day% %shortMonth%');
+//			$visitorDetailsArray['serverTimePrettyFirstAction'] = $dateTimeVisitFirstAction->getLocalized('%time%');
+			
+			$idvisit = $visitorDetailsArray['idVisit'];
+
+			$actions = $this->getActionDetailsForIdVisit($idvisit);
+
+			$visitorDetailsArray['actionDetails'] = $actions;   
 			
 			$table->addRowFromArray( array(Piwik_DataTable_Row::COLUMNS => $visitorDetailsArray));
 		}
