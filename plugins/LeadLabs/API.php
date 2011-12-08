@@ -128,49 +128,47 @@ class Piwik_LeadLabs_API
 		return $dataTable;
 	}
 
-	public function getActionDetailsForIdVisit($idvisit)
+	public function getActionDetailsForIdVisit($idSite, $idvisit)
 	{
-			// The second join is a LEFT join to allow returning records that don't have a matching page title
-			// eg. Downloads, Outlinks. For these, idaction_name is set to 0
-			$sql = "
-				SELECT
-					log_action.type as type,
-					log_action.name AS url,
-					log_action_title.name AS pageTitle,
-					log_action.idaction AS pageIdAction,
-					log_link_visit_action.idlink_va AS pageId,
-					log_link_visit_action.server_time as serverTimePretty
-				FROM " .Piwik_Common::prefixTable('log_link_visit_action')." AS log_link_visit_action
-					INNER JOIN " .Piwik_Common::prefixTable('log_action')." AS log_action
-					ON  log_link_visit_action.idaction_url = log_action.idaction
-					LEFT JOIN " .Piwik_Common::prefixTable('log_action')." AS log_action_title
-					ON  log_link_visit_action.idaction_name = log_action_title.idaction
-				WHERE log_link_visit_action.idvisit = ?
-				 ";
-			$actionDetails = Piwik_FetchAll($sql, array($idvisit));
-			
-			$actions = $actionDetails;
-			
-			usort($actions, array($this, 'sortByServerTime'));
-			// Convert datetimes to the site timezone
-			foreach($actions as &$details)
+		Piwik::checkUserHasViewAccess($idSite);
+		// The second join is a LEFT join to allow returning records that don't have a matching page title
+		// eg. Downloads, Outlinks. For these, idaction_name is set to 0
+		$sql = "
+			SELECT
+				log_action.type as type,
+				log_action.name AS url,
+				log_action_title.name AS pageTitle,
+				log_action.idaction AS pageIdAction,
+				log_link_visit_action.idlink_va AS pageId,
+				log_link_visit_action.server_time as serverTimePretty
+			FROM " .Piwik_Common::prefixTable('log_link_visit_action')." AS log_link_visit_action
+				INNER JOIN " .Piwik_Common::prefixTable('log_action')." AS log_action
+				ON  log_link_visit_action.idaction_url = log_action.idaction
+				LEFT JOIN " .Piwik_Common::prefixTable('log_action')." AS log_action_title
+				ON  log_link_visit_action.idaction_name = log_action_title.idaction
+			WHERE log_link_visit_action.idvisit = ? AND log_link_visit_action.idsite = ?
+			 ";
+		$actionDetails = Piwik_FetchAll($sql, array($idvisit, $idSite));
+		$actions = $actionDetails;
+		
+		usort($actions, array($this, 'sortByServerTime'));
+		// Convert datetimes to the site timezone
+		foreach($actions as &$details)
+		{
+			switch($details['type'])
 			{
-				switch($details['type'])
-				{
-					case Piwik_Tracker_Action_Interface::TYPE_DOWNLOAD:
-						$details['type'] = 'download';
-					break;
-					case Piwik_Tracker_Action_Interface::TYPE_OUTLINK:
-						$details['type'] = 'outlink';
-					break;
-					default:
-						$details['type'] = 'action';
-					break;
-				}
-//				$dateTimeVisit = Piwik_Date::factory($details['serverTimePretty'], $timezone);
-//				$details['serverTimePretty'] = $dateTimeVisit->getLocalized('%shortDay% %day% %shortMonth% %time%'); 
+				case Piwik_Tracker_Action_Interface::TYPE_DOWNLOAD:
+					$details['type'] = 'download';
+				break;
+				case Piwik_Tracker_Action_Interface::TYPE_OUTLINK:
+					$details['type'] = 'outlink';
+				break;
+				default:
+					$details['type'] = 'action';
+				break;
 			}
-			return $actions;
+		}
+		return $actions;
 	}
 	/**
 	 * For an array of visits, query the list of pages for this visit 
@@ -190,17 +188,15 @@ class Piwik_LeadLabs_API
 
 			$visitorDetailsArray['serverTimestamp'] = $visitorDetailsArray['lastActionTimestamp'];
 			$dateTimeVisit = Piwik_Date::factory($visitorDetailsArray['lastActionTimestamp'], $timezone);
-			
+//			log_link_visit_action.server_time as serverTimePretty
 			$dateTimeVisitFirstAction = Piwik_Date::factory($visitorDetailsArray['firstActionTimestamp'], $timezone);
 //			$visitorDetailsArray['serverDatePrettyFirstAction'] = $dateTimeVisitFirstAction->getLocalized('%shortDay% %day% %shortMonth%');
 //			$visitorDetailsArray['serverTimePrettyFirstAction'] = $dateTimeVisitFirstAction->getLocalized('%time%');
 			
 			$idvisit = $visitorDetailsArray['idVisit'];
 
-			$actions = $this->getActionDetailsForIdVisit($idvisit);
+			$visitorDetailsArray['actionDetails'] = $this->getActionDetailsForIdVisit($idSite, $idvisit);
 
-			$visitorDetailsArray['actionDetails'] = $actions;   
-			
 			$table->addRowFromArray( array(Piwik_DataTable_Row::COLUMNS => $visitorDetailsArray));
 		}
 		return $table;
@@ -219,8 +215,6 @@ class Piwik_LeadLabs_API
 	
 	private function loadLastVisitorDetailsFromDatabase($idSite, $period = false, $date = false, $segment = false, $filter_limit = false, $maxIdVisit = false, $visitorId = false, $minTimestamp = false)
 	{
-//		var_dump($period); var_dump($date); var_dump($filter_limit); var_dump($maxIdVisit); var_dump($visitorId);
-//var_dump($minTimestamp);
 		if(empty($filter_limit))
 		{
 			$filter_limit = 100;
