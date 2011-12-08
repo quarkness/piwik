@@ -67,20 +67,20 @@ class Piwik_LeadLabs_Visitor
 			'provider' => $this->getProvider(),
 			'providerUrl' => $this->getProviderUrl(),
 			'referrerType' => $this->getRefererType(),
-			'referrerTypeName' => $this->getRefererTypeName(),
+//			'referrerTypeName' => $this->getRefererTypeName(),
 			'referrerName' => $this->getRefererName(),
 			'referrerKeyword' => $this->getKeyword(),
 			'referrerKeywordPosition' => $this->getKeywordPosition(),
 			'referrerUrl' => $this->getRefererUrl(),
 			'referrerSearchEngineUrl' => $this->getSearchEngineUrl(),
-			'operatingSystem' => $this->getOperatingSystem(),
+//			'operatingSystem' => $this->getOperatingSystem(),
 			'operatingSystemShortName' => $this->getOperatingSystemShortName(),
-			'browserFamily' => $this->getBrowserFamily(),
-			'browserFamilyDescription' => $this->getBrowserFamilyDescription(),
+//			'browserFamily' => $this->getBrowserFamily(),
+//			'browserFamilyDescription' => $this->getBrowserFamilyDescription(),
 	 		'browserName' => $this->getBrowser(),
-			'screenType' => $this->getScreenType(),
-			'resolution' => $this->getResolution(),
-			'plugins' => $this->getPlugins(),
+//			'screenType' => $this->getScreenType(),
+//			'resolution' => $this->getResolution(),
+//			'plugins' => $this->getPlugins(),
 		);
 	}
 
@@ -335,7 +335,7 @@ class Piwik_LeadLabs_Visitor
 
 	function getDateTimeLastAction()
 	{
-		return date('Y-m-d H:i:s', strtotime($this->details['visit_last_action_time']));
+		return date('c', strtotime($this->details['visit_last_action_time']));
 	}
 
 	
