@@ -88,20 +88,6 @@ class Piwik_LeadLabs_API
 		empty($data[0]['visitsConverted']) ? $data[0]['visitsConverted'] = 0 : '';
 		return $data;
 	}
-	
-	/**
-	 * The same functionnality can be obtained using segment=visitorId==$visitorId with getLastVisitsDetails
-	 * 
-	 * @deprecated
-	 * @ignore
-	 */
-	public function getLastVisitsForVisitor( $visitorId, $idSite, $filter_limit = 10 )
-	{
-		Piwik::checkUserHasViewAccess($idSite);
-		$visitorDetails = $this->loadLastVisitorDetailsFromDatabase($idSite, $period = false, $date = false, $segment = false, $filter_limit, $maxIdVisit = false, $visitorId);
-		$table = $this->getCleanedVisitorsFromDetails($visitorDetails, $idSite);
-		return $table;
-	}
 
 	/**
 	 * Returns the last visits tracked in the specified website
@@ -128,7 +114,7 @@ class Piwik_LeadLabs_API
 		return $dataTable;
 	}
 
-	public function getActionDetailsForIdVisit($idSite, $idvisit)
+	public function getActionDetailsForIdVisit($idSite, $idVisit)
 	{
 		Piwik::checkUserHasViewAccess($idSite);
 		// The second join is a LEFT join to allow returning records that don't have a matching page title
@@ -148,7 +134,7 @@ class Piwik_LeadLabs_API
 				ON  log_link_visit_action.idaction_name = log_action_title.idaction
 			WHERE log_link_visit_action.idvisit = ? AND log_link_visit_action.idsite = ?
 			 ";
-		$actionDetails = Piwik_FetchAll($sql, array($idvisit, $idSite));
+		$actionDetails = Piwik_FetchAll($sql, array($idVisit, $idSite));
 		$actions = $actionDetails;
 		
 		usort($actions, array($this, 'sortByServerTime'));
@@ -193,9 +179,8 @@ class Piwik_LeadLabs_API
 //			$visitorDetailsArray['serverDatePrettyFirstAction'] = $dateTimeVisitFirstAction->getLocalized('%shortDay% %day% %shortMonth%');
 //			$visitorDetailsArray['serverTimePrettyFirstAction'] = $dateTimeVisitFirstAction->getLocalized('%time%');
 			
-			$idvisit = $visitorDetailsArray['idVisit'];
-
-			$visitorDetailsArray['actionDetails'] = $this->getActionDetailsForIdVisit($idSite, $idvisit);
+			$idVisit = $visitorDetailsArray['idVisit'];
+			$visitorDetailsArray['actionDetails'] = $this->getActionDetailsForIdVisit($idSite, $idVisit);
 
 			$table->addRowFromArray( array(Piwik_DataTable_Row::COLUMNS => $visitorDetailsArray));
 		}
